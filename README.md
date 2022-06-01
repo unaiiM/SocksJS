@@ -84,4 +84,4 @@ Example of bind process, in this case we will use:
 3. The simulated server destination will recive the text we send it with the bind server address and port.
 !["Destination server"](https://raw.githubusercontent.com/unaiiM/SocksJS/main/img/socks4simulatedserver.png) 
 4. And then we will create a simulated connection from the destination to the binding server, and when it connects will recive the text we send it to them when it connects to the binding server.
-["Connection binding"](https://raw.githubusercontent.com/unaiiM/SocksJS/main/img/socks4simulatedconnection.png) 
+!["Connection binding"](https://raw.githubusercontent.com/unaiiM/SocksJS/main/img/socks4simulatedconnection.png) 
