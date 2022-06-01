@@ -78,4 +78,4 @@ Example of bind process, in this case we will use:
 	- A netcat to simulate destination server
 	- A netcat connection from the target to the bind server
 1. First lunch the server.
-["Server launch"](https://raw.githubusercontent.com/unaiiM/SocksJS/main/img/socks4server.png))
+["Server launch"](https://raw.githubusercontent.com/unaiiM/SocksJS/main/img/socks4server.png)
