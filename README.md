@@ -71,3 +71,11 @@ client.eventEmitter.on("established", (socket, info) => {
 
 client.bind();
 ```
+
+Example of bind process, in this case we will use:
+	- The server socks
+	- The client socks
+	- A netcat to simulate destination server
+	- A netcat connection from the target to the bind server
+1. First lunch the server.
+["Server launch"](https://raw.githubusercontent.com/unaiiM/SocksJS/main/img/socks4server.png))
