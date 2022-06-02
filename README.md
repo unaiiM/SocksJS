@@ -16,7 +16,8 @@ The client have a eventEmitter with three events:
 On a connect the client only will need to use the connect event, to know when the server established a connection with the destination. 
 If we want to do a connect we only need to specify in the options the proxy and destination options.
 
-Example code of a connect command.
+Example code of a connect command:
+
 ```
 import { Client as Socks4Client, ClientOptions as Socks4ClientOptions } from "../socks4/client";
 
@@ -49,7 +50,8 @@ client.connect();
 ```
 ### Client bind command
 On a bind the client will need to use all events, because a bind command first need to send a connect command to the server.
-Example code of binding.
+
+Example code of binding:
 
 ```
 import { Client as Socks4Client, ClientOptions as Socks4ClientOptions } from "../socks4/client";
@@ -110,6 +112,7 @@ Example of bind process, in this case we will use:
 	- The client socks
 	- A netcat to simulate destination server
 	- A netcat connection from the target to the bind server
+	
 1. First lunch the server.
 !["Server launch"](https://raw.githubusercontent.com/unaiiM/SocksJS/main/img/socks4server.png)
 2. Then lunch the client, that client has the same code as the binding code example.
