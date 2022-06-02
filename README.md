@@ -1,4 +1,4 @@
-# SocksJS
+# SocksTS
 This project is in construction, still need to program socks4a client / server and socks5 client / server. For any question you can contact me on my mail; unaimatopi@gmail.com.
 
 ## Socks 4
