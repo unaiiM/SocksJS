@@ -7,7 +7,7 @@ I created a socks4 client and server that will have all socks standart funcional
 	- connect command
 	- identd
 
-### Client
+## Client
 The client have a eventEmitter with three events:
   - connect --> when the server connects to the destination.
   - bound --> when the server binds a new server.
