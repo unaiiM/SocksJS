@@ -3,8 +3,9 @@ This project is in construction, still need to program socks4a client / server a
 
 ## Socks 4
 I created a socks4 client and server that will have all socks standart funcionalities:
-	- bind
-	- connect
+	- bind command
+	- connect command
+	- identd
 
 ### Client
 The client have a eventEmitter with three events:
@@ -15,6 +16,7 @@ The client have a eventEmitter with three events:
 ### Client connect command
 On a connect the client only will need to use the connect event, to know when the server established a connection with the destination. 
 If we want to do a connect we only need to specify in the options the proxy and destination options.
+If the server has activated the identd, you will need to specify the userid in the destination id.
 
 Example code of a connect command:
 
