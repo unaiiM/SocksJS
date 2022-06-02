@@ -123,3 +123,27 @@ Example of bind process, in this case we will use:
 !["Destination server"](https://raw.githubusercontent.com/unaiiM/SocksJS/main/img/socks4simulatedserver.png) 
 4. And then we will create a simulated connection from the destination to the binding server, and when it connects will recive the text we send it to them when it connects to the binding server.
 !["Connection binding"](https://raw.githubusercontent.com/unaiiM/SocksJS/main/img/socks4simulatedconnection.png) 
+
+## Server
+The server will include all the funcionalities:
+	- bind command
+	- connect command
+	- indentd
+
+In the options we need to specify the address, the port, and if we want identd or not, if is not specified the server will detect it as you don't want it.
+
+Example of socks4 server creation:
+
+```
+import { Server as Socks4Server, ServerOptions as Socks4ServerOptions } from "../socks4/server";
+
+const options : Socks4ServerOptions = {
+	address : "127.0.0.1",
+	port : 1080,
+	identd : true 	
+};
+
+const server : any = new Socks4Server(options); 
+
+server.listen();
+```
