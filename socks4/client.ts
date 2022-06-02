@@ -177,8 +177,12 @@ export class Client {
 		return;
 	};
 	
-	bind() : void {		
-				
+	bind() : void {	
+		
+		if(!this.bindOptions.address || !this.bindOptions.port){
+                	throw new Error("Bind options not configured.");
+	        };
+		
 		let bindOptions : Socks4Bind = this.bindOptions; 
 		let proxyOptions : Socks4Proxy = this.proxy;
 		let rootClass : any = this;
