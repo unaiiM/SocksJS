@@ -1,0 +1,1 @@
+set config to be able to disable commands

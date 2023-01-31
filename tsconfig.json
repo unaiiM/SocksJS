@@ -1,0 +1,11 @@
+{
+    "compilerOptions" : {
+        "target": "es6",
+        "moduleResolution": "node",
+        "rootDir": "src",
+        "outDir": "out"
+    },
+    "exclude": [
+        "trys/**"
+    ]
+}
