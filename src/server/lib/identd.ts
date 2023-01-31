@@ -1,7 +1,7 @@
 import * as net from "net";
 
 export interface Config {
-    ip : string;
+    address : string;
     port? : number; // identd port 113 defualt
     lport : number;
     rport : number;
@@ -19,7 +19,7 @@ export default class Identd {
 
     constructor(private config : Partial<Config>){
 
-        if(!config.ip) throw new Error("Undefined ip!");
+        if(!config.address) throw new Error("Undefined ip!");
         if(!config.port) config.port = 113;
         if(!config.lport) throw new Error("Undefined local prot!");
         if(!config.rport) throw new Error("Undefined remote port!");
@@ -62,7 +62,7 @@ export default class Identd {
             let data : string;
 
             const sock = net.createConnection({
-                host : this.config.ip,
+                host : this.config.address,
                 port : this.config.port
             });
 

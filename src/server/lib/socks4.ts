@@ -8,7 +8,7 @@ import * as dns from "dns";
 type ResponseStatus = 0x5a | 0x5b | 0x5c | 0x5d;
 
 interface Target {
-    ip : string;
+    address : string;
     port : number;
 }
 
@@ -16,7 +16,7 @@ interface Request {
     version : number;
     command : number;
     port : number;
-    ip : string;
+    address : string;
     identd : string;
     domain? : string;
 }
@@ -52,11 +52,11 @@ class Socks4 extends EventEmitter {
         if(valid){
 
             let target : Target = {
-                ip : request.ip,
+                address : request.address,
                 port : request.port
             };
 
-            let isDomainRequired : boolean = this.isDomainRequired(request.ip);
+            let isDomainRequired : boolean = this.isDomainRequired(request.address);
 
             if(isDomainRequired && !this.options.socks4a.enabled){
 
@@ -66,7 +66,7 @@ class Socks4 extends EventEmitter {
 
             }else if(isDomainRequired){
 
-                let ip : undefined | string = await new Promise((resolv, reject) => {
+                let address : undefined | string = await new Promise((resolv, reject) => {
                    
                     dns.resolve4(request.domain, (err : Error, addresses : string[]) => {
 
@@ -79,7 +79,7 @@ class Socks4 extends EventEmitter {
                         
                 });
 
-                if(!ip){
+                if(!address){
 
                     conn.write(this.generateResponse(0x5b, target));
                     conn.destroy();
@@ -87,8 +87,8 @@ class Socks4 extends EventEmitter {
                 
                 }else { 
                 
-                    request.ip = ip; 
-                    target.ip = ip;
+                    request.address = address; 
+                    target.address = address;
                 
                 };
 
@@ -99,7 +99,7 @@ class Socks4 extends EventEmitter {
                 let serverAddress : net.AddressInfo = <net.AddressInfo> this.server.address();
 
                 let config : IdentdConfig = {
-                    ip : target.ip,
+                    address : target.address,
                     lport : serverAddress.port,
                     rport : conn.remotePort
                 };
@@ -154,7 +154,7 @@ class Socks4 extends EventEmitter {
             version : Number(buff[0]),
             command : Number(buff[1]),
             port : parseInt(buff[2].toString(16) + buff[3].toString(16), 16),
-            ip : (buff.slice(4, 8)).join("."),
+            address : (buff.slice(4, 8)).join("."),
             identd : (buff.slice(8, index = buff.slice(8, buff.length).indexOf(0))).toString(),
             domain : (buff.slice(++index), buff.slice(index, buff.slice(index, buff.length).indexOf(0))).toString()
         };
@@ -171,7 +171,7 @@ class Socks4 extends EventEmitter {
 
     private isValidCommand(command : number) : boolean {
 
-        return (command === 0x01 || command === 0x02) ? true : false;
+        return ((command === 0x01 && this.options.socks4.connect) || (command === 0x02 && this.options.socks4.bind)) ? true : false;
 
     }
 
@@ -180,7 +180,7 @@ class Socks4 extends EventEmitter {
         if(!this.isValidVersion(request.version)) return false;
         else if(!this.isValidCommand(request.command)) return false;
         else if(!this.utils.isValidPort(request.port)) return false;
-        else if(!this.utils.isValidIpv4(request.ip)) return false;
+        else if(!this.utils.isValidIpv4(request.address)) return false;
         else return true;
 
     };
@@ -195,7 +195,7 @@ class Socks4 extends EventEmitter {
 
     private generateResponse(status : ResponseStatus, target : Target) : Buffer {
 
-        return Buffer.from([0x00, status].concat(Array.from(Buffer.from(this.utils.toFixedHexLen(target.port.toString(16), 4), "hex")), target.ip.split(".").map(n => Number(n))));    
+        return Buffer.from([0x00, status].concat(Array.from(Buffer.from(this.utils.toFixedHexLen(target.port.toString(16), 4), "hex")), target.address.split(".").map(n => Number(n))));    
     
        // return Buffer.concat("00" + status.toString(16) + this.utils.toFixedHexLen(target.port.toString(16), 4) + this.utils.ipv4ToHex(target.ip), "hex");
 
@@ -212,41 +212,39 @@ class Socks4 extends EventEmitter {
         //console.log(request.command);
 
         let target : Target = {
-            ip : request.ip,
+            address : request.address,
             port : request.port
         };
 
         switch (request.command){
 
-            case 1:
+            case 0x01:
 
-                this.connect(target.ip, target.port, conn);
-                
+                this.connect(target, conn);
                 break;
 
-            case 2:
+            case 0x02:
                 
-                this.bind(target.ip, target.port, conn);
-
+                this.bind(target, conn);
                 break;
 
         };
 
     };
 
-    private connect(ip : string, port : number, conn : net.Socket) : void {
+    private connect(dest : Target, conn : net.Socket) : void {
 
-        const sock : net.Socket = net.createConnection(port, ip);
+        const sock : net.Socket = net.createConnection(dest.port, dest.address);
 
         sock.on("connect", () => { 
             this.emit("connected");
             console.log(this.generateResponse(0x5a, <Target> {
-                ip : ip,
-                port : port
+                address : dest.address,
+                port : dest.port
             }));
             conn.write(this.generateResponse(0x5a, <Target> {
-                ip : ip,
-                port : port
+                address : dest.address,
+                port : dest.port
             }));
             
         });
@@ -277,7 +275,7 @@ class Socks4 extends EventEmitter {
 
     };
 
-    private bind(ip : string, port : number, conn : net.Socket) : void {
+    private bind(dest : Target, conn : net.Socket) : void {
 
         /* 
             target ip to identify the incomming connection and target port idk for what is used the target port
@@ -290,7 +288,7 @@ class Socks4 extends EventEmitter {
 
             let address : net.AddressInfo = <net.AddressInfo> c.address();
 
-            if((address.address === ip || ip === "0.0.0.0") && (address.port === port || port === 0)){
+            if((address.address === dest.address || dest.address === "0.0.0.0") && (address.port === dest.port || dest.port === 0)){
 
                 sock = c;
 
@@ -308,17 +306,17 @@ class Socks4 extends EventEmitter {
 
                 this.emit("connected");
                 conn.write(this.generateResponse(0x5a, <Target> {
-                    ip : address.address,
+                    address : address.address,
                     port : address.port
                 }));
 
             }else {
               
-                this.emit("error", new Error("Bad connection recived on boud server from " + ip + ":" + port));
+                this.emit("error", new Error("Bad connection recived on boud server from " + address.address + ":" + address.port));
 
                 conn.write(this.generateResponse(0x5b, <Target> {
-                    ip : ip,
-                    port : port
+                    address : dest.address,
+                    port : dest.port
                 }));
 
                 conn.destroy();
@@ -338,18 +336,18 @@ class Socks4 extends EventEmitter {
 
         });
 
-        server.listen(0, "127.0.0.1", () => { 
+        server.listen(0, this.options.socks4.laddress.address, () => { 
 
             let address : net.AddressInfo = <net.AddressInfo> server.address();
             console.log(address);
             
             this.emit("bound");
             console.log(this.generateResponse(0x5a, <Target> {
-                ip : address.address,
+                address : address.address,
                 port : address.port
             }));
             conn.write(this.generateResponse(0x5a, <Target> {
-                ip : address.address,
+                address : address.address,
                 port : address.port
             }));        
 

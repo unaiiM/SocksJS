@@ -147,25 +147,6 @@ class Socks5 extends EventEmitter {
 
             };
 
-            /* 
-                check rule set 
-                It is expected
-                that the SOCKS server will use DST.ADDR and DST.PORT, and the
-                client-side source address and port in evaluating the CONNECT
-                request.
-           
-                check encapsulation of data from auth method
-                
-                check errors BIND, CONNECT while connecting or starting the server!
-
-                errors response from server
-
-                first verifiy if the request is valid <--
-
-                fragemntation udp associate
-
-            */
-
             valid = this.checkRuleset(<net.AddressInfo> conn.address(), target);
             console.log(valid, conn.address(), target);
 
@@ -338,7 +319,7 @@ class Socks5 extends EventEmitter {
 
         if(request.version !== 0x05) return false;
         else if(!this.isValidCommand(request.command)){
-            conn.write(this.generateResponse(0x02, target, method));
+            conn.write(this.generateResponse(0x07, target, method));
             return false;
         } else if(request.reserved !== 0x00) return false;
         else if(!this.isValidFamily(request.type)){
@@ -361,7 +342,7 @@ class Socks5 extends EventEmitter {
 
     private isValidCommand(command : number) : boolean {
  
-        return (command === 0x01 || command === 0x02 || command === 0x03) ? true : false;
+        return ((command === 0x01 && this.options.connect) || (command === 0x02 && this.options.bind) || (command === 0x03 && this.options.associate)) ? true : false;
  
     };
 
@@ -632,7 +613,7 @@ class Socks5 extends EventEmitter {
 
         });
 
-        server.listen(0, "127.0.0.1", () => { 
+        server.listen(0, this.options.laddress.address, () => { 
 
             let address : net.AddressInfo = <net.AddressInfo> server.address();
 
@@ -780,7 +761,7 @@ class Socks5 extends EventEmitter {
 
         });
           
-        server.bind(0, "127.0.0.1");
+        server.bind(0, this.options.laddress.address);
 
     };
 

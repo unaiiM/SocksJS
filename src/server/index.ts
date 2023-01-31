@@ -1,5 +1,4 @@
 import Config, { ServerConfig, Socks4Config, Socks5Config, Socks4aConfig, LogConfig, Ruleset, RulesetList } from "./lib/config.js";
-import methods, { Method, Methods } from "./lib/methods.js";
 import Log from "./lib/log.js";
 import * as net from "net";
 import Socks4 from "./lib/socks4.js";

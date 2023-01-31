@@ -1,10 +1,19 @@
 import methods, { Method, Methods } from "./methods.js";
 import Utils from "./utils.js";
+import * as os from "os";
+
+interface Address {
+    address : string;
+    family : 6 | 4;
+};
 
 interface Socks4Config {
     enabled? : boolean;
     identd? : boolean;
     users? : string[];
+    connect? : boolean;
+    bind? : boolean;
+    laddress? : Address; // ipv4 only
 }
 
 interface Socks4aConfig {
@@ -15,6 +24,10 @@ interface Socks5Config {
     enabled? : boolean;
     methods? : Methods;
     ruleset? : Ruleset;
+    connect? : boolean;
+    bind? : boolean;
+    associate? : boolean;
+    laddress? : Address; // ipv4, ipv6
 }
 
 interface LogConfig {
@@ -48,7 +61,13 @@ class Config {
     public socks4 : Required<Socks4Config> = {
         enabled : true,
         identd : false,
-        users : []
+        users : [],
+        connect : true,
+        bind : true,
+        laddress :  {
+            address : "0.0.0.0",
+            family : 4
+        }
     };
     
     public socks4a : Required<Socks4aConfig> = {
@@ -69,6 +88,13 @@ class Config {
                 destinations : {},
                 clients : {}
             }
+        },
+        connect : true,
+        bind : true,
+        associate : true,
+        laddress : {
+            address : "0.0.0.0",
+            family : 4
         }
     };
 
@@ -108,6 +134,30 @@ class Config {
             if(typeof socks4.identd !== "undefined") this.socks4.identd = socks4.identd;
             if(socks4.users) this.socks4.users = socks4.users;
 
+            if(socks4.laddress){
+
+                let laddress : Address = {
+                    address : this.utils.ipv4ArrayToString(this.utils.parseIpv4(socks4.laddress.address)),
+                    family : 4
+                };
+
+                if(!this.utils.isValidIpv4(laddress.address)) throw new Error("Not valid ipv4");
+                if(this.isAnyAddress(laddress.address)){
+                    laddress = this.getIPAddress(0);
+                    if(this.isAnyAddress(laddress.address)) throw new Error("Can't find any ip address to use!");
+                };
+
+                this.socks4.laddress = laddress;
+
+            }else {
+
+                let laddress : Address = this.getIPAddress(4);
+                if(this.isAnyAddress(laddress.address)) throw new Error("Can't find any ip address to use!");
+                
+                this.socks4.laddress = laddress;
+            
+            };
+                
         };
 
         if(config.socks4a){
@@ -140,7 +190,45 @@ class Config {
     
             };
 
-            console.log(this.socks5.ruleset.whitelist);
+            if(socks5.laddress){
+
+                let laddress : Address;
+
+                if(socks5.laddress.family === 4){
+                
+                    laddress = {
+                        address : this.utils.ipv4ArrayToString(this.utils.parseIpv4(socks5.laddress.address)),
+                        family : 4
+                    };
+                    if(!this.utils.isValidIpv4(laddress.address)) throw new Error("Not valid ipv4!");
+
+                }else if(socks5.laddress.family === 6){
+                    
+                    laddress = {
+                        address : this.utils.ipv6ArrayToMin(this.utils.parseIpv6(socks5.laddress.address)),
+                        family : 6
+                    };
+                    if(!this.utils.isValidIpv6(laddress.address)) throw new Error("Not valid ipv6!");
+                
+                };
+
+                if(this.isAnyAddress(laddress.address)){
+                
+                    laddress = this.getIPAddress(0);
+                    if(this.isAnyAddress(laddress.address)) throw new Error("Can't find any ip address to use!");
+                
+                };
+
+                this.socks5.laddress = laddress;
+                
+            }else {
+
+                let laddress : Address = this.getIPAddress(0);
+                if(this.isAnyAddress(laddress.address)) throw new Error("Can't find any ip address to use!");
+                
+                this.socks5.laddress = laddress;
+            
+            };
 
         };
 
@@ -151,6 +239,74 @@ class Config {
             if(log.file) this.log.file = log.file;
 
         };
+
+    };
+
+
+    public getIPAddress(family : 0 | 4 | 6) : Address {
+
+        let address : Address = {
+            address : "0.0.0.0",
+            family : 4
+        }
+        
+        let interfaces : object = os.networkInterfaces();
+
+        for(let iface in interfaces){
+
+            let addresses : os.NetworkInterfaceInfo[] = interfaces[iface];
+
+            for(let info of addresses){
+
+                if(family === 0){
+                    address.address = info.address;
+                    address.family = (info.family === 'IPv6') ? 6 : 4;
+                    break;
+                }else if(family === 4 && info.family === 'IPv4'){
+                    address.address = info.address;
+                    address.family = 4;
+                    break;
+                }else if(family === 6 && info.family === 'IPv6'){
+                    address.address = info.address;
+                    address.family = 6;
+                    break;
+                };
+            
+            };
+
+        };
+        
+        return address;
+    
+    };
+
+    public isAnyAddress(addr : string) : boolean {
+
+        switch(addr) {
+            case "0.0.0.0":
+                return true;
+            case "::":
+                return true;
+            default:
+                return false;
+        };
+
+    };
+
+    public isValidLocalAddress(addr : string) : boolean {
+
+        let interfaces : object = os.networkInterfaces();
+
+        for(let iface in interfaces){
+
+            let info : os.NetworkInterfaceInfo = interfaces[iface];
+
+            if(info.address === addr) return true;
+            else continue;
+
+        };
+
+        return false;
 
     };
 
