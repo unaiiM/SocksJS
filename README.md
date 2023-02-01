@@ -11,7 +11,7 @@ Don't support:
 
 First import required types and interfaces for the server config, like:
   - ServerConfig --> for server config
-  - RulesetAddresses -->
+  - RulesetAddresses --> 
   - RulesetList --> 
 
   (explanation of more interfaces and types in development)
