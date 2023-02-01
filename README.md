@@ -78,3 +78,10 @@ server.listen(PORT, "0.0.0.0", () => {
 
 });
 ```
+
+# References
+- https://es.wikipedia.org/wiki/SOCKS (very basic info)
+- https://www.openssh.com/txt/socks4.protocol (Socks4 full info)
+- https://www.openssh.com/txt/socks4a.protocol (Socks4a full info)
+- https://tools.ietf.org/html/rfc1928 (Socks5 full info)
+
