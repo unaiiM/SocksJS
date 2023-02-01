@@ -23,9 +23,57 @@ In the server config there is more interfaces and types we can use to declare th
   - RulesetList --> struct for whitelist and blacklist in ruleset struct, we can found the clients and destination we want to blacklist or whitelist.
   - RulesetAddresses --> type object of string as key, were we need to put the address, and array of number as value, where we need to put the ports. 
 
+Example:
+
 ```
 import * as config from "../server/lib/config.js";
 import Server from "./../server/index.js";
-```
 
-Server config, all can be optional, but will be set with default values:
+const laddress : config.Address = {
+    address : "192.168.1.24",               // address that can remote host connect to it
+    family : 4                              // address family
+};
+
+const socks4 : config.Socks4Config = {
+    enabled : true,                         // by default is true
+    identd : true,                          // by default is false
+    users : ["unai"],                       // is the admited users from the idend, by default is void array; []
+    connect : true,                         // by default is true
+    bind : true,                            // by default is true
+    laddress : laddress                     // by default ladress is set to a random ipv4 address from the avaliable addresses in the device
+                                            // laddress is used to specify where a bind server or associate server will listen
+                                            // is recommended set the laddress where the remote host can connect to it
+};
+
+const socks4a : config.Socks4aConfig = {
+    enabled : true                          // by default is true, to specify if we want domain resolution or not in socks4
+};
+
+const socks5 : config.Socks5Config = {
+    enabled : true,                         // by default is true
+    connect : true,                         // by default is true
+    bind : true,                            // by default is true
+    associate : true,                       // by default is true
+    laddress : laddress                     // same option as socks4 version, but the only diference is that will chose random ipv4 or ipv6 address
+};                                          // will explain custom methods and ruleset later
+
+const log : config.LogConfig = {
+    file : __dirname + "/log.txt"           // by default is __dirname + "/log.txt"
+};
+
+const options : config.ServerConfig = {     // all can be omited, this will cause the omited one will be set to all options as default ones.
+    socks4 : socks4,                        
+    socks4a : socks4a,
+    socks5 : socks5,
+    log : log
+};
+
+const PORT : number = 8080;
+
+const server : Server = new Server(options);
+server.listen(PORT, "0.0.0.0", () => {
+
+    console.log("Server started on port : " + PORT);
+
+});
+```
