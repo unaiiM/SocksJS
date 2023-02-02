@@ -28,10 +28,11 @@ Example:
 
 ```
 import * as config from "../server/lib/config.js";
-import Server from "../server/index.js";
+import Server from "./../server/index.js";
 
 const laddress : config.Address = {
-    address : "192.168.1.24",               // address that can remote host connect to it
+    address : "0.0.0.0",                    // address that can remote host connect to it, in this case the client must notify the remote host with the same address     
+                                            // that client connects to the socks server, because is any address.
     family : 4                              // address family
 };
 
