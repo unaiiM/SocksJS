@@ -17,12 +17,13 @@ In the server config there is more interfaces and types we can use to declare th
   - Socks4aConfig --> socks 4a config struct.
   - Socks5Config --> socks 5 config struct.
   - LogConfig --> event log config struct.
+  - Ruleset --> ruleset config strcut, used to define whitelist and blacklist destinations and clients.
+  - RulesetList --> struct for whitelist and blacklist in ruleset struct, we can found the clients and destination we want to blacklist or whitelist.
+  - RulesetAddresses --> type object of string as key, were we need to put the address, and array of number as value, where we need to put the ports. 
   - Address --> struct for laddress option in socks4 and socks5 struct.
   - Methods --> type of array of Method for methods option in socks5, used to declare custom methods.
   - Method --> struct for to declare one method.
-  - Ruleset --> struct for ruleset option in socks5 config; whitelist and blacklist.
-  - RulesetList --> struct for whitelist and blacklist in ruleset struct, we can found the clients and destination we want to blacklist or whitelist.
-  - RulesetAddresses --> type object of string as key, were we need to put the address, and array of number as value, where we need to put the ports. 
+
 
 Example:
 
