@@ -41,7 +41,7 @@ const socks4 : config.Socks4Config = {
     users : ["unai"],                       // is the admited users from the idend, by default is void array; []
     connect : true,                         // by default is true
     bind : true,                            // by default is true
-    laddress : laddress                     // by default ladress is set to a random ipv4 address from the avaliable addresses in the device
+    laddress : laddress                     // by default ladress is set to 0.0.0.0 
                                             // laddress is used to specify where a bind server or associate server will listen
                                             // is recommended set the laddress where the remote host can connect to it
 };
@@ -55,8 +55,8 @@ const socks5 : config.Socks5Config = {
     connect : true,                         // by default is true
     bind : true,                            // by default is true
     associate : true,                       // by default is true
-    laddress : laddress                     // same option as socks4 version, but the only diference is that will chose random ipv4 or ipv6 address
-};                                          // will explain custom methods and ruleset later
+    laddress : laddress                     // same option as socks4 version, but the only diference is that can hold ipv6 and ipv4
+};                                          
 
 const log : config.LogConfig = {
     file : __dirname + "/log.txt"           // by default is __dirname + "/log.txt"
@@ -67,6 +67,7 @@ const options : config.ServerConfig = {     // all can be omited, this will caus
     socks4a : socks4a,
     socks5 : socks5,
     log : log
+                                            // will explain custom methods and ruleset later
 };
 
 const PORT : number = 8080;
