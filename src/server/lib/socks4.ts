@@ -1,6 +1,6 @@
-import { ServerConfig, Socks4Config, Socks4aConfig } from "./config.js";
+import { ServerConfig, Socks4Config, Socks4aConfig, Ruleset } from "./config.js";
 import * as net from "net";
-import Utils from "./utils.js";
+import Utils, { Target as RulesetTarget } from "./utils.js";
 import Identd, { Config as IdentdConfig, Response as IdentdResponse } from "./identd.js";
 import { EventEmitter } from "events";
 import * as dns from "dns";
@@ -29,6 +29,7 @@ class Socks4 extends EventEmitter {
         socks4 : Socks4Config;
         socks4a : Socks4aConfig;
     };
+    private ruleset : Ruleset;
 
     private utils : Utils = new Utils();
 
@@ -41,6 +42,7 @@ class Socks4 extends EventEmitter {
             socks4 : options.socks4,
             socks4a : options.socks4a
         };
+        this.ruleset = options.ruleset;
 
     };
 
@@ -135,7 +137,16 @@ class Socks4 extends EventEmitter {
 
             };
 
-            this.execCommand(request, conn);
+            valid = this.utils.checkRuleset(<net.AddressInfo> conn.address(), <RulesetTarget> target, this.ruleset);
+            console.log(valid, conn.address(), target);
+
+            if(!valid){
+    
+                conn.write(this.generateResponse(0x5b, target));
+                conn.destroy();
+                return;
+    
+            }else this.execCommand(request, conn);
 
         }else {
 
@@ -282,6 +293,10 @@ class Socks4 extends EventEmitter {
         */
 
         const server : net.Server = new net.Server();
+        const timeout = setTimeout(() => {
+            server.close();
+            conn.destroy();
+        }, 120_000); // 2min
         let sock : net.Socket;
 
         server.on("connection", (c : net.Socket) => {
@@ -290,6 +305,7 @@ class Socks4 extends EventEmitter {
 
             if((address.address === dest.address || dest.address === "0.0.0.0") && (address.port === dest.port || dest.port === 0)){
 
+                clearTimeout(timeout);
                 sock = c;
 
                 sock.on("data", (buff : Buffer) => conn.write(buff));

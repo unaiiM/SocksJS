@@ -1,7 +1,7 @@
 import * as net from "net";
 import { EventEmitter } from "events";
 import { Ruleset, RulesetAddresses, RulesetList, ServerConfig, Socks5Config } from "./config.js";
-import Utils from "./utils.js";
+import Utils, { Target as RulesetTarget } from "./utils.js";
 import methods, { Method, Methods } from "./methods.js";
 import * as dns from "dns";
 import * as dgram from "dgram";
@@ -48,6 +48,7 @@ class Socks5 extends EventEmitter {
 
     private server : net.Server;
     private options : Socks5Config;
+    private ruleset : Ruleset;
     private utils : Utils = new Utils();
 
     public constructor(server : net.Server, options : ServerConfig){
@@ -56,6 +57,7 @@ class Socks5 extends EventEmitter {
         
         this.server = server;
         this.options = options.socks5;
+        this.ruleset = options.ruleset;
 
     };
 
@@ -128,31 +130,37 @@ class Socks5 extends EventEmitter {
 
             if(request.type === 0x03){
 
-                dns.lookup(request.address, (err : Error, address : string, family : number) => {
-
-                    if(err){
-
-
-                        this.emit("error", err)
-                        conn.destroy();
+                await new Promise((resolv, reject) => {
                     
-                    }else {
+                    dns.lookup(request.address, (err : Error, address : string, family : number) => {
 
-                        target.address = address;
-                        target.family = (family === 6) ? 0x04 : 0x01;
-                    
-                    };
+                        if(err){
+
+
+                            this.emit("error", err)
+                            conn.destroy();
+                        
+                        }else {
+
+                            target.address = address;
+                            target.family = (family === 6) ? 0x04 : 0x01;
+                        
+                        };
+
+                        resolv(undefined);
+
+                    });
 
                 });
 
             };
 
-            valid = this.checkRuleset(<net.AddressInfo> conn.address(), target);
+            valid = this.utils.checkRuleset(<net.AddressInfo> conn.address(), <RulesetTarget> target, this.ruleset);
             console.log(valid, conn.address(), target);
 
             if(!valid){
     
-                conn.write(await this.generateResponse(0x02, target, method));
+                conn.write(this.generateResponse(0x02, target, method));
                 conn.destroy();
                 return;
     
@@ -164,54 +172,6 @@ class Socks5 extends EventEmitter {
             if(!conn.destroyed) conn.destroy();
 
         };
-
-    };
-
-    private checkRuleset(source : net.AddressInfo, target : Target) : boolean {
-
-        if(source.family === 'IPv6') source.address = this.utils.ipv6ArrayToMin(this.utils.parseIpv6(source.address));
-
-        const whitelist : RulesetList = this.options.ruleset.whitelist;
-        const blacklist : RulesetList = this.options.ruleset.blacklist;
-        const utils : Utils = this.utils;    
-
-        function checkAny(port : number, obj : RulesetAddresses) : boolean {
-
-            if(obj["0.0.0.0"]){
-                if(obj["0.0.0.0"].indexOf(port) || obj["0.0.0.0"].indexOf(0)) return true;
-                else return false;
-            }else if(obj["::"]){
-                if(obj["0.0.0.0"].indexOf(port) || obj["0.0.0.0"].indexOf(0)) return true;
-                else return false;
-            }else return false;
-
-        };
-
-        function check(address : string, port : number, obj : RulesetAddresses) : boolean {
-
-            if(obj[address]){
-                if(obj[address].indexOf(0) || obj[address].indexOf(port)) return true;
-                else if(checkAny(port, obj)) return true;
-                else return false;
-            }else if(checkAny(port, obj)){
-                return true;
-            }else return false;
-
-        };
-
-        if(whitelist.enabled){
-
-            if(!check(source.address, source.port, whitelist.clients)) return false;
-            if(!check(target.address, target.port, whitelist.destinations)) return false;
-
-        }else if(blacklist.enabled){
-
-            if(check(source.address, source.port, blacklist.clients)) return false;
-            if(check(target.address, target.port, blacklist.destinations)) return false;
-       
-        };
-
-        return true;
 
     };
 
@@ -798,4 +758,4 @@ class Socks5 extends EventEmitter {
 };
 
 export default Socks5;
-export {};
+export { Target };

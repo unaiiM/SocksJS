@@ -1,11 +1,5 @@
 import methods, { Method, Methods } from "./methods.js";
-import Utils from "./utils.js";
-import * as os from "os";
-
-interface Address {
-    address : string;
-    family : 6 | 4;
-};
+import Utils, { Address } from "./utils.js";
 
 interface Socks4Config {
     enabled? : boolean;
@@ -23,7 +17,6 @@ interface Socks4aConfig {
 interface Socks5Config {
     enabled? : boolean;
     methods? : Methods;
-    ruleset? : Ruleset;
     connect? : boolean;
     bind? : boolean;
     associate? : boolean;
@@ -51,6 +44,7 @@ interface ServerConfig {
     socks4? : Socks4Config;
     socks4a? : Socks4aConfig;
     socks5? : Socks5Config;
+    ruleset? : Ruleset;
     log? : LogConfig;
 };
 
@@ -77,18 +71,6 @@ class Config {
     public socks5 : Required<Socks5Config> = {
         enabled : true,
         methods : methods,
-        ruleset : {
-            whitelist : {
-                enabled : false,
-                destinations : {},
-                clients : {}
-            },
-            blacklist : {
-                enabled : false,
-                destinations : {},
-                clients : {}
-            }
-        },
         connect : true,
         bind : true,
         associate : true,
@@ -98,8 +80,21 @@ class Config {
         }
     };
 
+    public ruleset : Required<Ruleset> = {
+        whitelist : {
+            enabled : false,
+            destinations : {},
+            clients : {}
+        },
+        blacklist : {
+            enabled : false,
+            destinations : {},
+            clients : {}
+        }
+    };
+
     public log : Required<LogConfig> = {
-        file : "./log.txt"
+        file : __dirname + "/log.txt"
     };
 
     constructor(config : ServerConfig | undefined) {
@@ -142,20 +137,14 @@ class Config {
                 };
 
                 if(!this.utils.isValidIpv4(laddress.address)) throw new Error("Not valid ipv4");
-                if(this.isAnyAddress(laddress.address)){
-                    laddress = this.getIPAddress(0);
-                    if(this.isAnyAddress(laddress.address)) throw new Error("Can't find any ip address to use!");
+                if(this.utils.isAnyAddress(laddress.address)){
+                    laddress = this.utils.getIPAddress(0);
+                    if(this.utils.isAnyAddress(laddress.address)) throw new Error("Can't find any ip address to use!");
                 };
 
-                this.socks4.laddress = laddress;
+                if(!this.utils.isValidLocalAddress(laddress.address) && !this.utils.isAnyAddress(laddress.address)) throw new Error("Invalid local address!");
+                else this.socks4.laddress = laddress;
 
-            }else {
-
-                let laddress : Address = this.getIPAddress(4);
-                if(this.isAnyAddress(laddress.address)) throw new Error("Can't find any ip address to use!");
-                
-                this.socks4.laddress = laddress;
-            
             };
                 
         };
@@ -174,21 +163,6 @@ class Config {
 
             if(typeof socks5.enabled !== "undefined") this.socks5.enabled = socks5.enabled;
             if(socks5.methods) this.socks5.methods = this.checkMethods(this.socks5.methods, socks5.methods);
-            if(config.socks5.ruleset){
-
-                let ruleset : Partial<Ruleset> = config.socks5.ruleset;
-    
-                if(ruleset.whitelist){
-                    if(typeof ruleset.whitelist.enabled !== "undefined") this.socks5.ruleset.whitelist.enabled = ruleset.whitelist.enabled;
-                    if(ruleset.whitelist.destinations) this.socks5.ruleset.whitelist.destinations = checkAddresses(ruleset.whitelist.destinations);
-                    if(ruleset.whitelist.clients) this.socks5.ruleset.whitelist.clients = checkAddresses(ruleset.whitelist.clients);
-                }else if(ruleset.blacklist){
-                    if(typeof ruleset.blacklist.enabled !== "undefined") this.socks5.ruleset.blacklist.enabled = ruleset.blacklist.enabled;
-                    if(ruleset.blacklist.destinations) this.socks5.ruleset.blacklist.destinations = checkAddresses(ruleset.blacklist.destinations);
-                    if(ruleset.blacklist.clients) this.socks5.ruleset.blacklist.clients = checkAddresses(ruleset.blacklist.clients);
-                };
-    
-            };
 
             if(socks5.laddress){
 
@@ -212,22 +186,25 @@ class Config {
                 
                 };
 
-                if(this.isAnyAddress(laddress.address)){
+                if(!this.utils.isValidLocalAddress(laddress.address) && !this.utils.isAnyAddress(laddress.address)) throw new Error("Invalid local address!");
+                else this.socks5.laddress = laddress;
                 
-                    laddress = this.getIPAddress(0);
-                    if(this.isAnyAddress(laddress.address)) throw new Error("Can't find any ip address to use!");
-                
-                };
+            };
 
-                this.socks5.laddress = laddress;
-                
-            }else {
+        };
 
-                let laddress : Address = this.getIPAddress(0);
-                if(this.isAnyAddress(laddress.address)) throw new Error("Can't find any ip address to use!");
-                
-                this.socks5.laddress = laddress;
-            
+        if(config.ruleset){
+
+            let ruleset : Partial<Ruleset> = config.ruleset;
+
+            if(ruleset.whitelist){
+                if(typeof ruleset.whitelist.enabled !== "undefined") this.ruleset.whitelist.enabled = ruleset.whitelist.enabled;
+                if(ruleset.whitelist.destinations) this.ruleset.whitelist.destinations = checkAddresses(ruleset.whitelist.destinations);
+                if(ruleset.whitelist.clients) this.ruleset.whitelist.clients = checkAddresses(ruleset.whitelist.clients);
+            }else if(ruleset.blacklist){
+                if(typeof ruleset.blacklist.enabled !== "undefined") this.ruleset.blacklist.enabled = ruleset.blacklist.enabled;
+                if(ruleset.blacklist.destinations) this.ruleset.blacklist.destinations = checkAddresses(ruleset.blacklist.destinations);
+                if(ruleset.blacklist.clients) this.ruleset.blacklist.clients = checkAddresses(ruleset.blacklist.clients);
             };
 
         };
@@ -239,74 +216,6 @@ class Config {
             if(log.file) this.log.file = log.file;
 
         };
-
-    };
-
-
-    public getIPAddress(family : 0 | 4 | 6) : Address {
-
-        let address : Address = {
-            address : "0.0.0.0",
-            family : 4
-        }
-        
-        let interfaces : object = os.networkInterfaces();
-
-        for(let iface in interfaces){
-
-            let addresses : os.NetworkInterfaceInfo[] = interfaces[iface];
-
-            for(let info of addresses){
-
-                if(family === 0){
-                    address.address = info.address;
-                    address.family = (info.family === 'IPv6') ? 6 : 4;
-                    break;
-                }else if(family === 4 && info.family === 'IPv4'){
-                    address.address = info.address;
-                    address.family = 4;
-                    break;
-                }else if(family === 6 && info.family === 'IPv6'){
-                    address.address = info.address;
-                    address.family = 6;
-                    break;
-                };
-            
-            };
-
-        };
-        
-        return address;
-    
-    };
-
-    public isAnyAddress(addr : string) : boolean {
-
-        switch(addr) {
-            case "0.0.0.0":
-                return true;
-            case "::":
-                return true;
-            default:
-                return false;
-        };
-
-    };
-
-    public isValidLocalAddress(addr : string) : boolean {
-
-        let interfaces : object = os.networkInterfaces();
-
-        for(let iface in interfaces){
-
-            let info : os.NetworkInterfaceInfo = interfaces[iface];
-
-            if(info.address === addr) return true;
-            else continue;
-
-        };
-
-        return false;
 
     };
 
@@ -323,15 +232,19 @@ class Config {
 
     public getConfig() : ServerConfig {
 
-        return <ServerConfig> {
+        let config : Required<ServerConfig> = {
             socks4 : this.socks4,
             socks4a : this.socks4a,
-            socks5 : this.socks5
+            socks5 : this.socks5,
+            ruleset : this.ruleset,
+            log : this.log
         };
+
+        return config;
 
     };
 
 };
 
 export default Config;
-export { ServerConfig, Socks4Config, Socks4aConfig, Socks5Config, LogConfig, Ruleset, RulesetList, RulesetAddresses };
+export { ServerConfig, Socks4Config, Socks4aConfig, Socks5Config, LogConfig, Ruleset, RulesetList, RulesetAddresses, Address, Method, Methods };

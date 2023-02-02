@@ -1,7 +1,15 @@
+import * as os from "os";
+import * as config from "./config.js";
+import * as net from "net";
 
-export interface Target {
-    ip : string;
-    port : string;
+interface Target {
+    address : string;
+    port : number;
+}
+
+interface Address {
+    address : string;
+    family : 6 | 4;
 };
 
 export default class Utils {
@@ -213,4 +221,129 @@ export default class Utils {
 
     };
 
+    /*
+        local address utilities
+    */
+
+    public getIPAddress(family : 0 | 4 | 6) : Address {
+
+        let address : Address = {
+            address : "0.0.0.0",
+            family : 4
+        }
+        
+        let interfaces : object = os.networkInterfaces();
+
+        for(let iface in interfaces){
+
+            let addresses : os.NetworkInterfaceInfo[] = interfaces[iface];
+
+            for(let info of addresses){
+
+                if(family === 0){
+                    address.address = info.address;
+                    address.family = (info.family === 'IPv6') ? 6 : 4;
+                    break;
+                }else if(family === 4 && info.family === 'IPv4'){
+                    address.address = info.address;
+                    address.family = 4;
+                    break;
+                }else if(family === 6 && info.family === 'IPv6'){
+                    address.address = info.address;
+                    address.family = 6;
+                    break;
+                };
+            
+            };
+
+        };
+        
+        return address;
+    
+    };
+
+    public isAnyAddress(addr : string) : boolean {
+
+        switch(addr) {
+            case "0.0.0.0":
+                return true;
+            case "::":
+                return true;
+            default:
+                return false;
+        };
+
+    };
+
+    public isValidLocalAddress(addr : string) : boolean {
+
+        let interfaces : object = os.networkInterfaces();
+
+        for(let iface in interfaces){
+
+            let info : os.NetworkInterfaceInfo = interfaces[iface];
+
+            if(info.address === addr) return true;
+            else continue;
+
+        };
+
+        return false;
+
+    };
+
+    /* 
+        Ruleset
+    */
+
+    public checkRuleset(source : net.AddressInfo, target : Target, ruleset : config.Ruleset) : boolean {
+
+        if(source.family === 'IPv6') source.address = this.ipv6ArrayToMin(this.parseIpv6(source.address));
+
+        const whitelist : config.RulesetList = ruleset.whitelist;
+        const blacklist : config.RulesetList = ruleset.blacklist;
+        const utils : Utils = this;    
+
+        function checkAny(port : number, obj : config.RulesetAddresses) : boolean {
+
+            if(obj["0.0.0.0"]){
+                if(obj["0.0.0.0"].indexOf(port) || obj["0.0.0.0"].indexOf(0)) return true;
+                else return false;
+            }else if(obj["::"]){
+                if(obj["0.0.0.0"].indexOf(port) || obj["0.0.0.0"].indexOf(0)) return true;
+                else return false;
+            }else return false;
+
+        };
+
+        function check(address : string, port : number, obj : config.RulesetAddresses) : boolean {
+
+            if(obj[address]){
+                if(obj[address].indexOf(0) || obj[address].indexOf(port)) return true;
+                else if(checkAny(port, obj)) return true;
+                else return false;
+            }else if(checkAny(port, obj)){
+                return true;
+            }else return false;
+
+        };
+
+        if(whitelist.enabled){
+
+            if(!check(source.address, source.port, whitelist.clients)) return false;
+            if(!check(target.address, target.port, whitelist.destinations)) return false;
+
+        }else if(blacklist.enabled){
+
+            if(check(source.address, source.port, blacklist.clients)) return false;
+            if(check(target.address, target.port, blacklist.destinations)) return false;
+       
+        };
+
+        return true;
+
+    };
+
 };
+
+export { Address, Target };
