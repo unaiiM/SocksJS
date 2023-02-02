@@ -28,7 +28,7 @@ Example:
 
 ```
 import * as config from "../server/lib/config.js";
-import Server from "./../server/index.js";
+import Server from "../server/index.js";
 
 const laddress : config.Address = {
     address : "192.168.1.24",               // address that can remote host connect to it
