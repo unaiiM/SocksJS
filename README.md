@@ -2,11 +2,10 @@
 
 This is a socks server that suports:
   - Socks4, socks4a and socks5
-  - User/password auth (in development)
   - Custom auth method
-
 Don't support:
   - UDP fragmentation (I don't understand how it works)
+  - User/password auth (in development)
   
 # Usage
 
