@@ -1,5 +1,5 @@
 import * as config from "../server/lib/config.js";
-import Server from "./../server/index.js";
+import Server from "../server/index.js";
 
 const laddress : config.Address = {
     address : "0.0.0.0",                    // address that can remote host connect to it, in this case the client must notify the remote host with the same address     
