@@ -9,7 +9,7 @@ Don't support:
   
 # Usage
 
-Interface for server config:
+Interfaces for server config:
   - ServerConfig --> principal server config struct we need to pass to the server constructor, all is optional.
 In the server config there is more interfaces and types we can use to declare the config in diferent variables and have it more understandable, like:
   - Socks4Config --> socks 4 config struct.
