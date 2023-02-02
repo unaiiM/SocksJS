@@ -27,7 +27,7 @@ const socks5 : config.Socks5Config = {
     bind : true,                            // by default is true
     associate : true,                       // by default is true
     laddress : laddress                     // same option as socks4 version, but the only diference is that can hold ipv6 and ipv4
-};                                          // will explain custom methods and ruleset later
+};                                          
 
 const log : config.LogConfig = {
     file : __dirname + "/log.txt"           // by default is __dirname + "/log.txt"
@@ -38,6 +38,7 @@ const options : config.ServerConfig = {     // all can be omited, this will caus
     socks4a : socks4a,
     socks5 : socks5,
     log : log
+                                            // will explain custom methods and ruleset later
 };
 
 const PORT : number = 8080;
