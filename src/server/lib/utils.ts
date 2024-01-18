@@ -1,6 +1,17 @@
 import * as os from "os";
-import * as config from "./config.js";
 import * as net from "net";
+import {
+    SocksServerOptions, 
+    Socks4Options, 
+    Socks4aOptions, 
+    Socks5Options, 
+    Ruleset, 
+    RulesetList, 
+    RulesetAddresses, 
+    Method, 
+    Methods 
+} from "./types.js";
+import methods from "./methods.js";
 
 interface Target {
     address : string;
@@ -14,9 +25,19 @@ interface Address {
 
 export default class Utils {
 
+    private static readonly DEFAULT_LOCAL_ADDRESS : Address = {
+        address : "0.0.0.0",
+        family : 4
+    };
+
+    private static readonly DEFUALT_SOCKS4_OPTIONS : Socks4Options = { 
+        enabled: true, 
+        connect: true,
+    };
+
     /* Ipv6 */
 
-    public parseIpv6(addr : string) : number[] {
+    public static parseIpv6(addr : string) : number[] {
 
         let field : number[] = [];
         let i : number;
@@ -53,7 +74,7 @@ export default class Utils {
     
     };
 
-    public ipv6ArrayToFixed(arr : number[]) : string {
+    public static ipv6ArrayToFixed(arr : number[]) : string {
 
         let addr : string = "";
     
@@ -68,7 +89,7 @@ export default class Utils {
     
     };
 
-    public ipv6ArrayToMin(arr : number[]) : string {
+    public static ipv6ArrayToMin(arr : number[]) : string {
 
         let addr : string = "";
         let foo : number;
@@ -119,7 +140,7 @@ export default class Utils {
     
     };
 
-    public  isValidIpv6(addr : string){
+    public static  isValidIpv6(addr : string){
 
         let arr : number[] = this.parseIpv6(addr);
     
@@ -136,7 +157,7 @@ export default class Utils {
     
     };
 
-    public bufferToIpv6(buff : Buffer) : string {
+    public static bufferToIpv6(buff : Buffer) : string {
 
         let arr : number[] = [];
 
@@ -154,31 +175,29 @@ export default class Utils {
 
     /* IPV4 */
 
-    public parseIpv4(addr : string) : number[] {
+    public static parseIpv4(addr : string) : number[] {
 
         return addr.split(".").map((n) => Number(n));
 
     };
 
-    public ipv4ArrayToString(arr : number[]) : string {
+    public static ipv4ArrayToString(arr : number[]) : string {
 
         return arr.join(".");
 
     };
 
-    public checkIpv4(addr : string) : string {
+    public static checkIpv4(addr : string) : string {
 
         return this.ipv4ArrayToString(this.parseIpv4(addr));
 
     };
 
-    public isValidIpv4(addr : string) : boolean {
-
+    public static isValidIpv4(addr : string) : boolean {
         let arr : number[] = this.parseIpv4(addr);
 
         if(arr.length !== 4) return false;
         else {
-
             for(let n of arr){
 
                 if(Number.isNaN(n)) return false;
@@ -188,20 +207,14 @@ export default class Utils {
             };
 
             return true;
-
         };
-
     };
 
-    /* Others */
-
-    public isValidDomain(domain : string) : boolean {
-
+    public static isValidDomain(domain : string) : boolean {
         return (domain.length > 0) ? true : false;
-
     };
 
-    public isValidPort(port : number) : boolean {
+    public static isValidPort(port : number) : boolean {
 
         if(Number.isNaN(port)) return false;
         else if(port < 0 || port > 65_535) return false;
@@ -209,7 +222,7 @@ export default class Utils {
 
     }
 
-    public toFixedHexLen(hex : string, len : number) : string {
+    public static toFixedHexLen(hex : string, len : number) : string {
 
         while(hex.length < len){
 
@@ -221,11 +234,7 @@ export default class Utils {
 
     };
 
-    /*
-        local address utilities
-    */
-
-    public getIPAddress(family : 0 | 4 | 6) : Address {
+    public static getIPAddress(family : 0 | 4 | 6) : Address {
 
         let address : Address = {
             address : "0.0.0.0",
@@ -262,7 +271,7 @@ export default class Utils {
     
     };
 
-    public isAnyAddress(addr : string) : boolean {
+    public static isAnyAddress(addr : string) : boolean {
 
         switch(addr) {
             case "0.0.0.0":
@@ -275,7 +284,7 @@ export default class Utils {
 
     };
 
-    public isValidLocalAddress(addr : string) : boolean {
+    public static isValidLocalAddress(addr : string) : boolean {
 
         let interfaces : object = os.networkInterfaces();
 
@@ -292,19 +301,15 @@ export default class Utils {
 
     };
 
-    /* 
-        Ruleset
-    */
-
-    public checkRuleset(source : net.AddressInfo, target : Target, ruleset : config.Ruleset) : boolean {
+    public static checkRuleset(source : net.AddressInfo, target : Target, ruleset : Ruleset) : boolean {
 
         if(source.family === 'IPv6') source.address = this.ipv6ArrayToMin(this.parseIpv6(source.address));
 
-        const whitelist : config.RulesetList = ruleset.whitelist;
-        const blacklist : config.RulesetList = ruleset.blacklist;
+        const whitelist : RulesetList = ruleset.whitelist;
+        const blacklist : RulesetList = ruleset.blacklist;
         const utils : Utils = this;    
 
-        function checkAny(port : number, obj : config.RulesetAddresses) : boolean {
+        function checkAny(port : number, obj : RulesetAddresses) : boolean {
 
             if(obj["0.0.0.0"]){
                 if(obj["0.0.0.0"].indexOf(port) || obj["0.0.0.0"].indexOf(0)) return true;
@@ -316,7 +321,7 @@ export default class Utils {
 
         };
 
-        function check(address : string, port : number, obj : config.RulesetAddresses) : boolean {
+        function check(address : string, port : number, obj : RulesetAddresses) : boolean {
 
             if(obj[address]){
                 if(obj[address].indexOf(0) || obj[address].indexOf(port)) return true;
@@ -341,7 +346,91 @@ export default class Utils {
         };
 
         return true;
+    };
 
+    public static checkAddresses(addresses : RulesetAddresses) : RulesetAddresses {
+        let obj : RulesetAddresses = {};
+        for(let key in addresses){
+                
+            if(this.isValidIpv4(key)) obj[this.ipv4ArrayToString(this.parseIpv4(key))] = addresses[key];
+            else if(this.isValidIpv6(key)) obj[this.ipv6ArrayToMin(this.parseIpv6(key))] = addresses[key];
+            else continue;
+
+        }; 
+        return obj;
+    };
+
+    public static checkOptions(options : SocksServerOptions) {
+        if(options.socks4){
+            let socks4 : Socks4Options = options.socks4;
+            socks4.enabled = socks4.enabled ?? true;
+            socks4.identd = socks4.identd ?? false;
+            socks4.users = socks4.users ?? [];
+
+            if(socks4.laddress){
+                let laddress : Address = socks4.laddress;
+
+                if(laddress.family !== 4) throw new Error("Invalid socks4 local address family versión.");
+                if(!this.isValidIpv4(laddress.address)) throw new Error("Invalid ipv4!");
+            }else socks4.laddress = this.DEFAULT_LOCAL_ADDRESS;
+                
+        } else options.socks4 = this.DEFUALT_SOCKS4_OPTIONS;
+
+        if(options.socks4a){
+            let socks4a : Socks4aOptions = options.socks4a;
+            socks4a.enabled = socks4a.enabled ?? true;
+        };
+        
+        if(options.socks5){
+            let socks5 : Socks5Options = options.socks5;
+            socks5.enabled = socks5.enabled ?? true;
+            socks5.methods = (socks5.methods) ? methods : this.joinMethods(methods, socks5.methods);
+
+            if(socks5.laddress){
+                let laddress : Address = socks5.laddress;
+                if(socks5.laddress.family === 4 && !this.isValidIpv4(laddress.address)) throw new Error("Not valid ipv4!");
+                else if(socks5.laddress.family === 6 && !this.isValidIpv6(laddress.address)) throw new Error("Not valid ipv6!");
+                else throw new Error("Not valid family!");
+
+                if(!this.utils.isValidLocalAddress(laddress.address) && !this.utils.isAnyAddress(laddress.address)) throw new Error("Invalid local address!");
+                else this.socks5.laddress = laddress;
+                
+            } else socks5.laddress = this.DEFAULT_LOCAL_ADDRESS;
+
+        };
+
+        if(config.ruleset){
+
+            let ruleset : Partial<Ruleset> = config.ruleset;
+
+            if(ruleset.whitelist){
+                if(typeof ruleset.whitelist.enabled !== "undefined") this.ruleset.whitelist.enabled = ruleset.whitelist.enabled;
+                if(ruleset.whitelist.destinations) this.ruleset.whitelist.destinations = checkAddresses(ruleset.whitelist.destinations);
+                if(ruleset.whitelist.clients) this.ruleset.whitelist.clients = checkAddresses(ruleset.whitelist.clients);
+            }else if(ruleset.blacklist){
+                if(typeof ruleset.blacklist.enabled !== "undefined") this.ruleset.blacklist.enabled = ruleset.blacklist.enabled;
+                if(ruleset.blacklist.destinations) this.ruleset.blacklist.destinations = checkAddresses(ruleset.blacklist.destinations);
+                if(ruleset.blacklist.clients) this.ruleset.blacklist.clients = checkAddresses(ruleset.blacklist.clients);
+            };
+
+        };
+
+        if(config.log){
+
+            let log : Partial<LogConfig> = config.log;
+
+            if(log.file) this.log.file = log.file;
+
+        };
+
+    };
+
+    /**
+     * x will be the default methods and y the methods to be added
+     * this function will check if any default method needs to be changed by new method
+     */
+    public static joinMethods(x : Methods, y : Methods) : Methods {
+        return Object.assign(x, y);
     };
 
 };

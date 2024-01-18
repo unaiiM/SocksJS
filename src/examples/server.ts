@@ -1,4 +1,4 @@
-import * as config from "../server/lib/config.js";
+import * as config from "../server/lib/types.js";
 import Server from "../server/index.js";
 
 const laddress : config.Address = {

@@ -1,10 +1,10 @@
-import Config, { ServerConfig, Socks4Config, Socks5Config, Socks4aConfig, LogConfig, Ruleset, RulesetList } from "./lib/config.js";
-import Log from "./lib/log.js";
 import * as net from "net";
+import Config, { ServerConfig, Socks4Config, Socks5Config, Socks4aConfig, LogConfig, Ruleset, RulesetList } from "./lib/types.js";
+import { logger } from "./lib/logger.js";
 import Socks4 from "./lib/socks4.js";
 import Socks5 from "./lib/socks5.js";
 
-class Server {
+class SocksServer {
 
     private config : Config;
     private server : net.Server;
@@ -101,8 +101,4 @@ class Server {
 
 };
 
-process.on('uncaughtException', function (err : Error) {
-  console.log('Caught exception: ', err);
-});
-
-export default Server;
+export { SocksServer };

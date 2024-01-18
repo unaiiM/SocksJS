@@ -1,6 +1,6 @@
 import * as net from "net";
 import { EventEmitter } from "events";
-import { Ruleset, RulesetAddresses, RulesetList, ServerConfig, Socks5Config } from "./config.js";
+import { Ruleset, RulesetAddresses, RulesetList, ServerConfig, Socks5Config } from "./types.js";
 import Utils, { Target as RulesetTarget } from "./utils.js";
 import methods, { Method, Methods } from "./methods.js";
 import * as dns from "dns";

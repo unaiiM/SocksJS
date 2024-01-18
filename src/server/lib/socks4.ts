@@ -1,4 +1,4 @@
-import { ServerConfig, Socks4Config, Socks4aConfig, Ruleset } from "./config.js";
+import { ServerConfig, Socks4Config, Socks4aConfig, Ruleset } from "./types.js";
 import * as net from "net";
 import Utils, { Target as RulesetTarget } from "./utils.js";
 import Identd, { Config as IdentdConfig, Response as IdentdResponse } from "./identd.js";
