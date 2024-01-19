@@ -1,9 +1,13 @@
-import { ServerConfig, Socks4Config, Socks4aConfig, Ruleset } from "./types.js";
 import * as net from "net";
+import * as dns from "dns";
+import { EventEmitter } from "events";
+import { 
+    Socks4Options, 
+    Socks4aOptions, 
+    Ruleset 
+} from "./types.js";
 import Utils, { Target as RulesetTarget } from "./utils.js";
 import Identd, { Config as IdentdConfig, Response as IdentdResponse } from "./identd.js";
-import { EventEmitter } from "events";
-import * as dns from "dns";
 
 type ResponseStatus = 0x5a | 0x5b | 0x5c | 0x5d;
 
@@ -26,24 +30,19 @@ class Socks4 extends EventEmitter {
 
     private server : net.Server;
     private options : {
-        socks4 : Socks4Config;
-        socks4a : Socks4aConfig;
+        socks4 : Socks4Options;
+        socks4a : Socks4aOptions;
     };
     private ruleset : Ruleset;
 
-    private utils : Utils = new Utils();
-
-    constructor(server : net.Server, options : ServerConfig){
-
+    constructor(server : net.Server, options4 : Socks4Options, options4a : Socks4aOptions, ruleset : Ruleset){
         super();
-
         this.server = server;
         this.options = {
-            socks4 : options.socks4,
-            socks4a : options.socks4a
+            socks4 : options4,
+            socks4a : options4a,
         };
-        this.ruleset = options.ruleset;
-
+        this.ruleset = ruleset;
     };
 
     public async handleConnection(conn : net.Socket, buff : Buffer) : Promise<void> {

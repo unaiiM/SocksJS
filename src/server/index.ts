@@ -1,32 +1,27 @@
 import * as net from "net";
-import Config, { ServerConfig, Socks4Config, Socks5Config, Socks4aConfig, LogConfig, Ruleset, RulesetList } from "./lib/types.js";
+import { SocksServerOptions, Socks4Options, Socks5Options, Socks4aOptions, Ruleset, RulesetList } from "./lib/types.js";
 import { logger } from "./lib/logger.js";
 import Socks4 from "./lib/socks4.js";
 import Socks5 from "./lib/socks5.js";
+import Utils from "./lib/utils.js";
 
 class SocksServer {
 
-    private config : Config;
+    private options : SocksServerOptions;
     private server : net.Server;
     private log : Log;
     private socks4 : Socks4;
     private socks5 : Socks5; 
 
-    public constructor(config : ServerConfig){
-
-        this.config = new Config(config);
-        
-        this.log = new Log(this.config.log.file);
-        this.log.on("error", (err : Error) => {
-            throw err;
-        });
+    public constructor(options : SocksServerOptions){
+        this.options = Utils.checkOptions(options);    
 
         this.socks4 = new Socks4(this.server, this.config.getConfig());
         this.socks4.on("error", (err : Error) => this.log.event("Socks4 Error", err.toString()));
         this.socks4.on("connected", () => this.log.event("Socks4 Msg", "Connected sucessfully!"));
         this.socks4.on("bound", () => this.log.event("Socks4 Msg", "Server bound sucessfully!"));
 
-        this.socks5 = new Socks5(this.server, this.config.getConfig());
+        this.socks5 = new Socks5(this.server, this.options.socks5, this.options.ruleset);
         this.socks4.on("error", (err : Error) => this.log.event("Socks5 Error", err.toString()));
         this.socks4.on("connected", () => this.log.event("Socks5 Msg", "Connected sucessfully!"));
         this.socks4.on("bound", () => this.log.event("Socks5 Msg", "Server bound sucessfully!"));

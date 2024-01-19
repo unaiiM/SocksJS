@@ -1,6 +1,6 @@
 import * as net from "net";
 
-export interface Config {
+export interface Options {
     address : string;
     port? : number; // identd port 113 defualt
     lport : number;
@@ -17,91 +17,66 @@ export interface Response {
 
 export default class Identd {
 
-    constructor(private config : Partial<Config>){
-
-        if(!config.address) throw new Error("Undefined ip!");
-        if(!config.port) config.port = 113;
-        if(!config.lport) throw new Error("Undefined local prot!");
-        if(!config.rport) throw new Error("Undefined remote port!");
-
+    constructor(private options : Options){
+        if(!options.address) throw new Error("Undefined ip!");
+        if(!options.port) options.port = 113;
+        if(!options.lport) throw new Error("Undefined local prot!");
+        if(!options.rport) throw new Error("Undefined remote port!");
     };
 
     private digestResponse(response : string) : Response {
-
         let foo : string[] = response.split(":").map((s) => s.trim());
         let obj : Response = {
             ports : foo[0],
             status : foo[1]
         };
 
-        if(obj.status === "ERROR"){
-
-            obj.error = foo[2];
-
-        }else if(obj.status === "USERID"){
-
+        if(obj.status === "ERROR") obj.error = foo[2];
+        else if(obj.status === "USERID"){
             obj.os = foo[2];
             obj.user = foo[3];
-
         };
 
-
         return obj;
-
     };
 
-    public async getUser(callback : (err : Error | undefined, info : Response | undefined) => void) : Promise<void> {
-
-        /*
-            maybe check if the query ports correspond with requested ports ?
-        */
-
-        let error : Error | undefined = undefined; 
+    /**
+     * maybe check if the query ports correspond with requested ports ?
+     */
+    public async getUser(cb : (err? : Error, info? : Response) => void) : Promise<void> {
         let response : Response = await new Promise((resolv, reject) => {
-
             let data : string;
-
             const sock = net.createConnection({
-                host : this.config.address,
-                port : this.config.port
+                host : this.options.address,
+                port : this.options.port
             });
 
             sock.on("connect", () => {
-
-                sock.write(this.generateRequest(this.config.rport, this.config.lport));
-
+                sock.write(this.generateRequest(this.options.rport, this.options.lport));
             });
 
             sock.on("error", (err : Error) => {
-                
-                error = err;
-                sock.end();
-
+                reject(err);
             });
 
             sock.on("data", (buff : Buffer) => {
-
                 data = buff.toString();                
                 sock.end();
-
             });
 
             sock.on("end", () => {
-
                 resolv(this.digestResponse(data));
-
             });
-
         });
 
         if(error){
-            callback(error, undefined);
+            cb(error, undefined);
         }else if(response.status === "ERROR"){
-            callback(new Error(response.error), undefined);
+            cb(new Error(response.error), undefined);
         }else if(response.status === "USERID"){
-            callback(undefined, response);
+            cb(undefined, response);
         }else{  
-            callback(new Error("Bad response query!"), undefined);
+            cb(new Error("Bad response query!"), undefined);
         };
 
     };

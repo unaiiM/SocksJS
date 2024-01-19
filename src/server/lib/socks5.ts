@@ -1,10 +1,19 @@
 import * as net from "net";
-import { EventEmitter } from "events";
-import { Ruleset, RulesetAddresses, RulesetList, ServerConfig, Socks5Config } from "./types.js";
-import Utils, { Target as RulesetTarget } from "./utils.js";
-import methods, { Method, Methods } from "./methods.js";
 import * as dns from "dns";
 import * as dgram from "dgram";
+import { EventEmitter } from "events";
+import { 
+    Ruleset, 
+    RulesetAddresses, 
+    RulesetList, 
+    Socks5Options 
+} from "./types.js";
+import Utils, { Target as RulesetTarget } from "./utils.js";
+import methods, { 
+    Method, 
+    Methods 
+} from "./methods.js";
+
 
 type ResponseStatus = 0x00 | 0x01 | 0x02 | 0x03 | 0x04 | 0x05 | 0x06 | 0x07 | 0x08;
 
@@ -47,18 +56,15 @@ interface Dgram {
 class Socks5 extends EventEmitter {
 
     private server : net.Server;
-    private options : Socks5Config;
+    private options : Socks5Options;
     private ruleset : Ruleset;
     private utils : Utils = new Utils();
 
-    public constructor(server : net.Server, options : ServerConfig){
-
+    public constructor(server : net.Server, options : Socks5Options, ruleset : Ruleset){
         super();
-        
         this.server = server;
-        this.options = options.socks5;
-        this.ruleset = options.ruleset;
-
+        this.options = options;
+        this.ruleset = ruleset;
     };
 
     private getError(error) : ResponseStatus {

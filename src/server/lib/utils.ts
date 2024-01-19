@@ -35,6 +35,15 @@ export default class Utils {
         connect: true,
     };
 
+    private static readonly DEFUALT_RULESET_OPTIONS : Ruleset = { 
+        whitelist: {
+            enabled: false
+        },
+        blacklist: {
+            enabled: false
+        },
+    };
+
     /* Ipv6 */
 
     public static parseIpv6(addr : string) : number[] {
@@ -360,7 +369,7 @@ export default class Utils {
         return obj;
     };
 
-    public static checkOptions(options : SocksServerOptions) {
+    public static checkOptions(options : SocksServerOptions) : SocksServerOptions {
         if(options.socks4){
             let socks4 : Socks4Options = options.socks4;
             socks4.enabled = socks4.enabled ?? true;
@@ -372,6 +381,8 @@ export default class Utils {
 
                 if(laddress.family !== 4) throw new Error("Invalid socks4 local address family versión.");
                 if(!this.isValidIpv4(laddress.address)) throw new Error("Invalid ipv4!");
+
+                if(!this.isValidLocalAddress(laddress.address) && !this.isAnyAddress(laddress.address)) throw new Error("Invalid local address!");                
             }else socks4.laddress = this.DEFAULT_LOCAL_ADDRESS;
                 
         } else options.socks4 = this.DEFUALT_SOCKS4_OPTIONS;
@@ -388,41 +399,33 @@ export default class Utils {
 
             if(socks5.laddress){
                 let laddress : Address = socks5.laddress;
-                if(socks5.laddress.family === 4 && !this.isValidIpv4(laddress.address)) throw new Error("Not valid ipv4!");
-                else if(socks5.laddress.family === 6 && !this.isValidIpv6(laddress.address)) throw new Error("Not valid ipv6!");
-                else throw new Error("Not valid family!");
+                // if(laddress.family !== 4 || laddress.family !== 6) throw new Error("Not valid family!");
+                if(laddress.family === 4 && !this.isValidIpv4(laddress.address)) throw new Error("Not valid ipv4!");
+                else if(laddress.family === 6 && !this.isValidIpv6(laddress.address)) throw new Error("Not valid ipv6!");
 
-                if(!this.utils.isValidLocalAddress(laddress.address) && !this.utils.isAnyAddress(laddress.address)) throw new Error("Invalid local address!");
-                else this.socks5.laddress = laddress;
-                
+                if(!this.isValidLocalAddress(laddress.address) && !this.isAnyAddress(laddress.address)) throw new Error("Invalid local address!");                
             } else socks5.laddress = this.DEFAULT_LOCAL_ADDRESS;
 
         };
 
-        if(config.ruleset){
-
-            let ruleset : Partial<Ruleset> = config.ruleset;
+        if(options.ruleset){
+            let ruleset : Ruleset = options.ruleset;
 
             if(ruleset.whitelist){
-                if(typeof ruleset.whitelist.enabled !== "undefined") this.ruleset.whitelist.enabled = ruleset.whitelist.enabled;
-                if(ruleset.whitelist.destinations) this.ruleset.whitelist.destinations = checkAddresses(ruleset.whitelist.destinations);
-                if(ruleset.whitelist.clients) this.ruleset.whitelist.clients = checkAddresses(ruleset.whitelist.clients);
-            }else if(ruleset.blacklist){
-                if(typeof ruleset.blacklist.enabled !== "undefined") this.ruleset.blacklist.enabled = ruleset.blacklist.enabled;
-                if(ruleset.blacklist.destinations) this.ruleset.blacklist.destinations = checkAddresses(ruleset.blacklist.destinations);
-                if(ruleset.blacklist.clients) this.ruleset.blacklist.clients = checkAddresses(ruleset.blacklist.clients);
+                let whitelist : RulesetList = ruleset.whitelist;
+                whitelist.enabled = whitelist.enabled ?? true;
+                whitelist.destinations = whitelist.destinations ?? {};
+                whitelist.destinations = whitelist.clients ?? {};
+            } else ruleset.whitelist = this.DEFUALT_RULESET_OPTIONS.whitelist;
+            if(ruleset.blacklist){
+                let blacklist : RulesetList = ruleset.blacklist;
+                blacklist.enabled = blacklist.enabled ?? true;
+                blacklist.destinations = blacklist.destinations ?? {};
+                blacklist.destinations = blacklist.clients ?? {};
             };
+        } else options.ruleset = this.DEFUALT_RULESET_OPTIONS;
 
-        };
-
-        if(config.log){
-
-            let log : Partial<LogConfig> = config.log;
-
-            if(log.file) this.log.file = log.file;
-
-        };
-
+        return options;
     };
 
     /**
@@ -432,7 +435,6 @@ export default class Utils {
     public static joinMethods(x : Methods, y : Methods) : Methods {
         return Object.assign(x, y);
     };
-
 };
 
 export { Address, Target };

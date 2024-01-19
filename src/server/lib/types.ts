@@ -46,69 +46,6 @@ interface SocksServerOptions {
     ruleset? : Ruleset;
 };
 
-/*class Options {
-
-    private utils : Utils = new Utils();
-
-    public socks4 : Required<Socks4Options> = {
-        enabled : true,
-        identd : false,
-        users : [],
-        connect : true,
-        bind : true,
-        laddress :  {
-            address : "0.0.0.0",
-            family : 4
-        }
-    };
-    
-    public socks4a : Required<Socks4aConfig> = {
-        enabled: true
-    };
-    
-    public socks5 : Required<Socks5Config> = {
-        enabled : true,
-        methods : methods,
-        connect : true,
-        bind : true,
-        associate : true,
-        laddress : {
-            address : "0.0.0.0",
-            family : 4
-        }
-    };
-
-    public ruleset : Required<Ruleset> = {
-        whitelist : {
-            enabled : false,
-            destinations : {},
-            clients : {}
-        },
-        blacklist : {
-            enabled : false,
-            destinations : {},
-            clients : {}
-        }
-    };
-
-
-
-    public getConfig() : ServerConfig {
-
-        let config : Required<ServerConfig> = {
-            socks4 : this.socks4,
-            socks4a : this.socks4a,
-            socks5 : this.socks5,
-            ruleset : this.ruleset,
-            log : this.log
-        };
-
-        return config;
-
-    };
-
-};*/
-
 export { 
     SocksServerOptions, 
     Socks4Options, 
