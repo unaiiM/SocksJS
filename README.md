@@ -1,4 +1,4 @@
-# SocksTS
+# Socks Server
 
 This is a socks server that suports:
   - Socks4, socks4a and socks5
